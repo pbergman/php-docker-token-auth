@@ -1,6 +1,6 @@
 ##PHP docker registry 2 token authentication
 
-This is a light weight docker token authentication build in php to the specs of the (docs) [https://docs.docker.com/registry/spec/auth/token/]
+This is a light weight docker token authentication build in php to the specs of the (docs.) [https://docs.docker.com/registry/spec/auth/token]
 
 It can be used to validate push/pull and registration us users for you private registry.
 
