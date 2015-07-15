@@ -1,5 +1,4 @@
 {
-
   "name": "pbergman/php-docker-token-auth",
   "description": "a light weight docker token authentication build in php",
   "keywords": ["docker", "docker authentication", "docker token", "token"],
