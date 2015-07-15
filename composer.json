@@ -1,7 +1,7 @@
 {
 
-  "name": "silex/silex",
-  "description": "The PHP micro-framework based on the Symfony2 Components",
+  "name": "pbergman/php-docker-token-auth",
+  "description": "a light weight docker token authentication build in php",
   "keywords": ["docker", "docker authentication", "docker token", "token"],
   "license": "MIT",
   "authors": [
