@@ -8,12 +8,16 @@ It can be used to validate push/pull and registration us users for you private r
 
 ###Configuring
 
-prop.public_key     the private key, should be the content not file location
-prop.private_key    the public key, should be the content not file location
-prop.audience       audience that is registered in the registry (server name of registry)
-prop.issuer         issuer that is registered in the registry (server name of this server)
-prop.log_level      array of log levels to display
-prop.log_file       log file for logging , if non is given it will use stdout
+
+property | description
+---------|-------------
+prop.public_key   |  the private key, should be the content not file location
+prop.private_key  |  the public key, should be the content not file location
+prop.audience     |  audience that is registered in the registry (server name of registry)
+prop.issuer       |  issuer that is registered in the registry (server name of this server)
+prop.log_level    |  array of log levels to display
+prop.log_file     |  log file for logging , if non is given it will use stdout
+
 
 the config should be given as argument with the constructor:
 
