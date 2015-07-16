@@ -101,7 +101,7 @@ class Application extends BaseApplication
                     }
                 }
 
-                $token = JWT::encode($token, $this['prop.private_key'], 'RS256', $this->getKid());
+                $token = JWT::encode($token->getArrayCopy, $this['prop.private_key'], 'RS256', $this->getKid());
 
                 return $this->json(
                     ['token' => $token],
