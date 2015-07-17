@@ -10,12 +10,12 @@ It can be used to validate push/pull and registration us users for you private r
 
 
 property | type | description
----------|-------------
+---------|------|------
 prop.public_key   | string |  the private key, should be the content not file location
 prop.private_key  | string |  the public key, should be the content not file location
 prop.audience     | string |  audience that is registered in the registry (server name of registry)
 prop.issuer       | string |  issuer that is registered in the registry (server name of this server)
-prop.log_level    | string:array |  log level[s] to display (example: ['error', 'info'])
+prop.log_level    | string\|array |  log level[s] to display (example: ['error', 'info'])
 prop.log_file     |string |  log file for logging , if non is given it will use stdout
 
 
