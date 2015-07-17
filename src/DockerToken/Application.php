@@ -37,40 +37,8 @@ class Application extends BaseApplication
      */
     protected function initialize()
     {
-        if (!isset($this['prop.public_key'])) {
-            throw new ParameterException('No public key defined');
-        }
-        if (!isset($this['prop.private_key'])) {
-            throw new ParameterException('No private key defined');
-        }
-        if (!isset($this['prop.audience'])) {
-            throw new ParameterException('No audience for claim defined');
-        }
-        if (!isset($this['prop.issuer'])) {
-            throw new ParameterException('No issuer for claim defined');
-        }
-
-        if (isset($this['prop.log_level']) && is_array($this['prop.log_level'])) {
-            $level = $this['prop.log_level'];
-        } else {
-            $level = null;
-        }
-
-        if (isset($this['prop.log_file'])) {
-
-            if (is_file($this['prop.log_file'])) {
-                $this['prop.log_file'] = fopen($this['prop.log_file'], 'a+');
-            }
-
-            if (!is_resource($this['prop.log_file'])) {
-                throw new ParameterException('Log file should be valid file or resource');
-            }
-
-            $this['logger'] = new StreamLogger($this['prop.log_file'], $level);
-        } else {
-            $this['logger'] = new StreamLogger(fopen('php://stdout', 'a+'), $level);
-        }
-
+        $this->validateOptions();
+        $this->initializeLogger();
         $this->configureRoute();
     }
 
@@ -84,8 +52,11 @@ class Application extends BaseApplication
 
             try {
                 $parameters = new Parameters($this);
-                $token = new ClaimSet($this['prop.audience'], $parameters->getAccount(), $this['prop.issuer']);
-
+                $token = new ClaimSet(
+                    $this['prop.audience'],
+                    $parameters->getAccount(),
+                    $this['prop.issuer']
+                );
                 if (null !== $scope = $parameters->getScope()) {
                     list($type, $name, $actions) = explode(':', $scope, 3);
                     $token->addAccess(new Access($type, $name, explode(',', $actions)));
@@ -101,21 +72,75 @@ class Application extends BaseApplication
                     }
                 }
 
-                $token = JWT::encode($token->getArrayCopy(), $this['prop.private_key'], 'RS256', $this->getKid());
-
                 return $this->json(
-                    ['token' => $token],
-                    Response::HTTP_OK,
-                    ['Content-Type' => 'application/json']
+                    [
+                        'token' =>  JWT::encode(
+                            $token->getArrayCopy(),
+                            $this['prop.private_key'],
+                            'RS256',
+                            $this->getKid()
+                        ),
+                    ],
+                    Response::HTTP_OK
                 );
 
-
             } catch (InvalidAccessException $e) {
-                return new Response('Invalid credentials', Response::HTTP_UNAUTHORIZED);
+                return new Response(
+                    $e->getMessage(),
+                    Response::HTTP_UNAUTHORIZED
+                );
+            } catch (\Exception $e) {
+                $this['logger']->error(
+                    sprintf('Exception thrown: %s @ %s(%s),', $e->getMessage(), $e->getFile(), $e->getLine()));
+                return new Response($e->getMessage(), Response::HTTP_INTERNAL_SERVER_ERROR);
             }
-
         });
     }
+
+    /**
+     * validate the given options
+     *
+     * @throws ParameterException
+     */
+    protected function validateOptions()
+    {
+        if (!isset($this['prop.public_key'])) {
+            throw new ParameterException('No public key defined');
+        }
+        if (!isset($this['prop.private_key'])) {
+            throw new ParameterException('No private key defined');
+        }
+        if (!isset($this['prop.audience'])) {
+            throw new ParameterException('No audience for claim defined');
+        }
+        if (!isset($this['prop.issuer'])) {
+            throw new ParameterException('No issuer for claim defined');
+        }
+    }
+
+    /**
+     * Setup logger
+     */
+    protected function initializeLogger()
+    {
+        $levels = (isset($this['prop.log_level'])) ? (array) $this['prop.log_level'] : null;
+
+        if (isset($this['prop.log_file'])) {
+
+            if (is_file($this['prop.log_file'])) {
+                $this['prop.log_file'] = fopen($this['prop.log_file'], 'a+');
+            }
+
+            if (!is_resource($this['prop.log_file'])) {
+                throw new ParameterException(sprintf('Logger file should be valid file or resource, given "%s"', gettype($this['prop.log_file'])));
+            }
+
+            $this['logger'] = new StreamLogger($this['prop.log_file'], $levels);
+        } else {
+            $this['logger'] = new StreamLogger(fopen('php://stdout', 'w'), $levels);
+        }
+     }
+
 
 
     /**
@@ -131,7 +156,8 @@ class Application extends BaseApplication
             throw new InvalidAccessException();
         }
         $key = preg_replace('/\n|\r/', '',  $m['DATA']);
-        return implode(':', array_slice(str_split(rtrim(Base32::encode(hash('sha256', base64_decode($key), true)), '='), 4), 0, 12));
+        $key = array_slice(str_split(rtrim(Base32::encode(hash('sha256', base64_decode($key), true)), '='), 4), 0, 12);
+        return implode(':', $key);
     }
 
 }

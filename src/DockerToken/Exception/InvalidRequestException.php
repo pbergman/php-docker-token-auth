@@ -7,9 +7,9 @@ namespace DockerToken\Exception;
 
 use Exception;
 
-class InvalidAccessException extends \Exception implements ExceptionInterface
+class InvalidRequestException extends \Exception implements ExceptionInterface
 {
-    public function __construct($message = 'Invalid credentials')
+    public function __construct($message = 'Invalid request')
     {
         parent::__construct($message);
     }

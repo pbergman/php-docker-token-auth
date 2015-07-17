@@ -6,7 +6,7 @@
 namespace DockerToken\Request;
 
 use DockerToken\Application;
-use DockerToken\Exception\InvalidAccessException;
+use DockerToken\Exception\InvalidRequestException;
 use Psr\Log\LoggerInterface;
 use Symfony\Component\HttpFoundation\Request;
 
@@ -41,7 +41,7 @@ class Parameters
      * get username and password from the headers
      *
      * @param   Request $request
-     * @throws  InvalidAccessException
+     * @throws  InvalidRequestException
      */
     protected function parseAuthorization(Request $request)
     {
@@ -51,14 +51,19 @@ class Parameters
 
         if (is_null($username) || is_null($password)) {
             if (null === $authorization = $headers->get('authorization')) {
-                $this->logger->critical('Could not get authorization header');
-                throw new InvalidAccessException('Could not get authorization header');
+                $this->logger->error(
+                    sprintf(
+                        'Could not get authorization from header, got: "%s"',
+                        implode('", "', $headers->keys())
+                    )
+                );
+                throw new InvalidRequestException();
             } else {
                 if (preg_match('/^(.*):(.*)$/', base64_decode($authorization), $m)) {
                     list(, $username, $password) = $m;
                 } else {
-                    $this->logger->error('Authorization header is invalid');
-                    throw new InvalidAccessException('Authorization header is invalid');
+                    $this->logger->error(sprintf('Authorization header is invalid, "%s', base64_decode($authorization)));
+                    throw new InvalidRequestException();
                 }
             }
         }
