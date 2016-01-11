@@ -33,13 +33,34 @@ class ClaimSet extends AbstractWebToken
             "iss"    => $issuer,
             "sub"    => $subject,
             "aud"    => $audience,
-            "exp"    => time() + (60 * 60),    // Expire in hour
-            "nbf"    => time() - (60 * 10),    // Not before 10 minutes ago
-            "iat"    => time(),                // issued time
+            "exp"    => time() + $this->getExpiresIn(), // Expire in hour
+            "nbf"    => time() - (60 * 10),             // Not before 10 minutes ago
+            "iat"    => time(),                         // issued time
             "jti"    => strtoupper(bin2hex(openssl_random_pseudo_bytes(16))),
             'access' => [],
         ], self::ARRAY_AS_PROPS);
     }
+
+    /**
+     * Get time for token to be valid
+     *
+     * @return int
+     */
+    public function getExpiresIn()
+    {
+        return (60 * 60); // One hour
+    }
+
+    /**
+     * @return string
+     */
+    public function getIssuedAt()
+    {
+        $it = new \DateTime("@" . $this["iat"]);
+        $it->setTimezone(new \DateTimeZone("UTC"));
+        return $it->format('Y-m-d\TH:i:s\Z');
+    }
+
 
     /**
      * @param Access $access

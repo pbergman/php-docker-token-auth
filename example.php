@@ -12,7 +12,8 @@ $app = new \DockerToken\Application(array(
     'prop.issuer'       => 'auth.docker.com',
 ));
 $app->on($app::REGISTRY_REQUEST_EVENT, function(DockerToken\Event\TokenRequestEvent $event){
-    if ($event->getParameters()->getAuthUsername() !== 'foo' || $event->getParameters()->getAuthUsername() !== 'bar')
-    throw new \DockerToken\Exception\InvalidAccessException();
+    if ($event->getParameters()->getAuthUsername() !== 'foo' || $event->getParameters()->getAuthUsername() !== 'bar') {
+        throw new \DockerToken\Exception\InvalidAccessException();
+    }
 });
 $app->run();

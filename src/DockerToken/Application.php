@@ -71,7 +71,7 @@ class Application extends BaseApplication
                         );
                     }
                 }
-
+                // as described on https://docs.docker.com/registry/spec/auth/token/
                 return $this->json(
                     [
                         'token' =>  JWT::encode(
@@ -80,6 +80,8 @@ class Application extends BaseApplication
                             'RS256',
                             $this->getKid()
                         ),
+                        'expires_in' => $token->getExpiresIn(),
+                        'issued_at'  => $token->getIssuedAt(),
                     ],
                     Response::HTTP_OK
                 );
@@ -91,7 +93,8 @@ class Application extends BaseApplication
                 );
             } catch (\Exception $e) {
                 $this['logger']->error(
-                    sprintf('Exception thrown: %s @ %s(%s),', $e->getMessage(), $e->getFile(), $e->getLine()));
+                    sprintf('Exception thrown: %s @ %s(%s),', $e->getMessage(), $e->getFile(), $e->getLine())
+                );
                 return new Response($e->getMessage(), Response::HTTP_INTERNAL_SERVER_ERROR);
             }
         });
@@ -141,7 +144,12 @@ class Application extends BaseApplication
         }
      }
 
-
+    /**
+     * @return \Psr\Log\LoggerInterface
+     */
+    public function getLogger(){
+        return $this['logger'];
+    }
 
     /**
      * Create a kid from the public that the registry will
