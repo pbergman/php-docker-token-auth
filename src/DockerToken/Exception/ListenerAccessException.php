@@ -5,12 +5,14 @@
  */
 namespace DockerToken\Exception;
 
+use Exception;
+
 /**
- * Class WebTokenException
+ * Class ListenerAccessException
  *
  * @package DockerToken\Exception
  */
-class WebTokenException extends \InvalidArgumentException implements ExceptionInterface
+class ListenerAccessException extends \Exception implements ExceptionInterface
 {
 
 }

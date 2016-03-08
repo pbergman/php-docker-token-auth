@@ -6,14 +6,25 @@
 require_once __DIR__.'/vendor/autoload.php';
 
 $app = new \DockerToken\Application(array(
-    'prop.public_key'   => file_get_contents(dirname(__FILE__) . '/public.key'),
-    'prop.private_key'  => file_get_contents(dirname(__FILE__) . '/private.key'),
+    'prop.public_key'   => file_get_contents(dirname(__FILE__) . '/test.pub'),
+    'prop.private_key'  => file_get_contents(dirname(__FILE__) . '/test.key'),
     'prop.audience'     => 'registry.docker.com',
     'prop.issuer'       => 'auth.docker.com',
 ));
-$app->on($app::REGISTRY_REQUEST_EVENT, function(DockerToken\Event\TokenRequestEvent $event){
-    if ($event->getParameters()->getAuthUsername() !== 'foo' || $event->getParameters()->getAuthUsername() !== 'bar') {
-        throw new \DockerToken\Exception\InvalidAccessException();
+
+// listener for defined users
+$app->on($app::REGISTRY_REQUEST_EVENT, new \DockerToken\Listener\YamlAuthListener('users.example.yml'));
+// custom listener with hardcoded user/password
+$app->on($app::REGISTRY_REQUEST_EVENT, function(DockerToken\Event\TokenRequestEventInterface $event){
+    if ($event->isAccessGranted() || $event->isAccessDenied()) {
+	    if ($event->getParameters()->getAuthUsername() !== 'foo' || $event->getParameters()->getAuthPassword() !== 'bar') {
+		    // could throw InvalidAccessException but then no other event will be called
+		    // throw new \DockerToken\Exception\InvalidAccessException();
+		    $event->setAccessDenied();
+	    }
+	    $event->setAccessGranted();
     }
 });
+// listener for LDAP
+$app->on($app::REGISTRY_REQUEST_EVENT, new \DockerToken\Listener\LdapAuthListener('uid={username},dc=example,dc=com', '127.0.0.1'));
 $app->run();

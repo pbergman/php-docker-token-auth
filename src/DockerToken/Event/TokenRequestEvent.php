@@ -7,11 +7,11 @@ namespace DockerToken\Event;
 
 use DockerToken\Exception\InvalidAccessException;
 use DockerToken\Request\Parameters;
-use DockerToken\WebToken\ClaimSet;
+use DockerToken\Request\ClaimSet;
 use Silex\Application;
 use Symfony\Component\EventDispatcher\Event;
 
-class TokenRequestEvent extends Event
+class TokenRequestEvent extends Event implements TokenRequestEventInterface
 {
     /** @var Parameters  */
     protected $parameters;
@@ -19,6 +19,8 @@ class TokenRequestEvent extends Event
     protected $app;
     /** @var ClaimSet */
     protected $token;
+    /** @var int */
+    protected $access;
 
     /*
      * @inheritdoc
@@ -28,6 +30,7 @@ class TokenRequestEvent extends Event
         $this->parameters = $parameters;
         $this->app = $app;
         $this->token = $token;
+        $this->access = self::ACCESS_ABSTAIN;
     }
 
     /**
@@ -61,5 +64,53 @@ class TokenRequestEvent extends Event
     public function authenticationFailed()
     {
         throw new InvalidAccessException();
+    }
+
+    /**
+     * @param int $access
+     */
+    public function setAccess($access)
+    {
+        $this->access = $access;
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function setAccessGranted()
+    {
+        $this->setAccess(self::ACCESS_GRANTED);
+    }
+
+    /**
+     * @inheritdoc
+     */
+    public function setAccessDenied()
+    {
+        $this->setAccess(self::ACCESS_DENIED);
+    }
+
+    /**
+     * @return int
+     */
+    public function getAccess()
+    {
+        return $this->access;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isAccessDenied()
+    {
+        return $this->access === self::ACCESS_DENIED;
+    }
+
+    /**
+     * @return bool
+     */
+    public function isAccessGranted()
+    {
+        return $this->access === self::ACCESS_GRANTED;
     }
 }

@@ -16,14 +16,12 @@ class Parameters
     protected $account;
     /** @var string */
     protected $service;
-    /** @var string */
+    /** @var Scope */
     protected $scope;
     /** @var  string */
     protected $authUsername;
     /** @var string */
     protected $authPassword;
-    /** @var LoggerInterface  */
-    protected $logger;
 
     /**
      * @param Application $app
@@ -31,10 +29,9 @@ class Parameters
     function __construct(Application $app)
     {
         $this->service = $app['request']->get('service');
-        $this->scope = $app['request']->get('scope');
+        $this->scope = Scope::fromString($app['request']->get('scope'));
         $this->account = $app['request']->get('account');
-        $this->logger = $app['logger'];
-        $this->parseAuthorization($app['request']);
+        $this->parseAuthorization($app['request'], $app['logger']);
     }
 
     /**
@@ -43,7 +40,7 @@ class Parameters
      * @param   Request $request
      * @throws  InvalidRequestException
      */
-    protected function parseAuthorization(Request $request)
+    protected function parseAuthorization(Request $request, LoggerInterface $logger)
     {
         $headers = $request->headers;
         $username = $headers->get('php-auth-user');
@@ -51,18 +48,14 @@ class Parameters
 
         if (is_null($username) || is_null($password)) {
             if (null === $authorization = $headers->get('authorization')) {
-                $this->logger->error(
-                    sprintf(
-                        'Could not get authorization from header, got: "%s"',
-                        implode('", "', $headers->keys())
-                    )
-                );
+                $logger->error(sprintf('Could not get authorization from header, got: "%s"', implode('", "', $headers->keys())));
                 throw new InvalidRequestException();
             } else {
-                if (preg_match('/^(.*):(.*)$/', base64_decode($authorization), $m)) {
-                    list(, $username, $password) = $m;
+
+                if (preg_match('#^basic\s([a-z0-9\+/=]+)#i', $authorization, $m)) {
+                    list($username, $password) = explode(':', base64_decode($m[1]));
                 } else {
-                    $this->logger->error(sprintf('Authorization header is invalid, "%s', base64_decode($authorization)));
+                    $logger->error(sprintf('Unsupported authorization header: "%s', $authorization));
                     throw new InvalidRequestException();
                 }
             }
@@ -89,7 +82,7 @@ class Parameters
     }
 
     /**
-     * @return mixed
+     * @return Scope
      */
     public function getScope()
     {

@@ -1,0 +1,18 @@
+# user with limited rights
+-
+    username:   user1
+    password:   password1
+    access:
+        # for php repositories pull and push right
+        -
+            type: repository
+            name: php
+            actions: ['pull', 'push']
+        # for all repositories pull right
+        -
+            type: repository
+            actions: ['pull']
+# user with all rights
+-
+    username:   user2
+    password:   password2

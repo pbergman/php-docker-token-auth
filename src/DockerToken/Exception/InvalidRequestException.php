@@ -7,6 +7,11 @@ namespace DockerToken\Exception;
 
 use Exception;
 
+/**
+ * Class InvalidRequestException
+ *
+ * @package DockerToken\Exception
+ */
 class InvalidRequestException extends \Exception implements ExceptionInterface
 {
     public function __construct($message = 'Invalid request')

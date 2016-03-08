@@ -16,7 +16,7 @@ prop.private_key  | string |  the public key, should be the content not file loc
 prop.audience     | string |  audience that is registered in the registry (server name of registry)
 prop.issuer       | string |  issuer that is registered in the registry (server name of this server)
 prop.log_level    | string\|array |  log level[s] to display (example: ['error', 'info'])
-prop.log_file     |string |  log file for logging , if non is given it will use stdout
+prop.log_file     |string |  log file or fd for logging , if non is given it will use stdout
 
 
 the config should be given as argument with the constructor:
@@ -32,9 +32,13 @@ $app = new DockerToken\Application([
 
 ###Validating
 
-This application has on it self no validation, this can be added by adding a listener.(see example.php)
+There are some listeners defined in src\DockerToken\Listener that can be used for validation (see) example.php or the tests.
 
-If credentials are invalid you can throw a InvalidAccessException this will result in a 401 response.
+When using multiple handlers you can use the (is|set)Access(Granted|Denied) methods for controlling and comunicating the status.
+
+If you want to stop on success you use the stopPropagation method because the set methods won`t do that or on failure you can 
+just call  the InvalidAccessException that will resolve in a 401 status.
+
 
 ###Running
 

@@ -12,12 +12,16 @@ use DockerToken\Exception\InvalidAccessException;
 use DockerToken\Exception\ParameterException;
 use DockerToken\Logger\StreamLogger;
 use DockerToken\Request\Parameters;
-use DockerToken\WebToken\Access;
-use DockerToken\WebToken\ClaimSet;
+use DockerToken\Request\ClaimSet;
 use Silex\Application as BaseApplication;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\HttpFoundation\Response;
 
+/**
+ * Class Application
+ *
+ * @package DockerToken
+ */
 class Application extends BaseApplication
 {
     const REGISTRY_REQUEST_EVENT = 'registry.request.event';
@@ -52,23 +56,29 @@ class Application extends BaseApplication
 
             try {
                 $parameters = new Parameters($this);
+
                 $token = new ClaimSet(
                     $this['prop.audience'],
                     $parameters->getAccount(),
                     $this['prop.issuer']
                 );
-                if (null !== $scope = $parameters->getScope()) {
-                    list($type, $name, $actions) = explode(':', $scope, 3);
-                    $token->addAccess(new Access($type, $name, explode(',', $actions)));
+
+                if (null !== ($scope = $parameters->getScope())) {
+                    $token->addAccess($scope);
                 }
 
                 /** @var EventDispatcherInterface $dispatcher */
                 if (null !== ($dispatcher = $this['dispatcher'])) {
                     if ($dispatcher->hasListeners(self::REGISTRY_REQUEST_EVENT)) {
-                        $dispatcher->dispatch(
+                        /** @var TokenRequestEvent $event */
+                        $event = $dispatcher->dispatch(
                             self::REGISTRY_REQUEST_EVENT,
                             new TokenRequestEvent($parameters, $this, $token)
                         );
+
+                        if ($event->getAccess() !== $event::ACCESS_GRANTED) {
+                            throw new InvalidAccessException();
+                        }
                     }
                 }
                 // as described on https://docs.docker.com/registry/spec/auth/token/
@@ -80,8 +90,8 @@ class Application extends BaseApplication
                             'RS256',
                             $this->getKid()
                         ),
-                        'expires_in' => $token->getExpiresIn(),
-                        'issued_at'  => $token->getIssuedAt(),
+                        'expires_in' => $token->getExpiresTime(),
+                        'issued_at'  => $token->getFormattedIssuedAt(),
                     ],
                     Response::HTTP_OK
                 );
@@ -130,7 +140,7 @@ class Application extends BaseApplication
 
         if (isset($this['prop.log_file'])) {
 
-            if (is_file($this['prop.log_file'])) {
+            if (@is_file($this['prop.log_file'])) {
                 $this['prop.log_file'] = fopen($this['prop.log_file'], 'a+');
             }
 

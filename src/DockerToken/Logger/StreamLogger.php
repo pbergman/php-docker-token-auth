@@ -8,6 +8,11 @@ namespace DockerToken\Logger;
 use Psr\Log\AbstractLogger;
 use Psr\Log\LogLevel;
 
+/**
+ * Class StreamLogger
+ *
+ * @package DockerToken\Logger
+ */
 class StreamLogger extends AbstractLogger
 {
     /** @var resource  */

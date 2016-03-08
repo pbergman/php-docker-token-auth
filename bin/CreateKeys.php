@@ -59,7 +59,7 @@ class CreateKeysCommand
             'private_key_type'  => OPENSSL_KEYTYPE_RSA,
         ]);
         // Generate a certificate signing request
-        $csr = openssl_csr_new($dn, $res);
+        $csr = openssl_csr_new(array_filter($dn), $res);
         // Creates a self-signed cert
         $sscert = openssl_csr_sign($csr, null, $res, $this->input['days']);
         openssl_csr_export($csr, $out);
