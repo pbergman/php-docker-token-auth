@@ -6,14 +6,14 @@
 require_once __DIR__.'/vendor/autoload.php';
 
 $app = new \DockerToken\Application(array(
-    'prop.public_key'   => file_get_contents(dirname(__FILE__) . '/test.pub'),
-    'prop.private_key'  => file_get_contents(dirname(__FILE__) . '/test.key'),
-    'prop.audience'     => 'registry.docker.com',
-    'prop.issuer'       => 'auth.docker.com',
+    'public_key'   => dirname(__FILE__) . '/test.pub',
+    'private_key'  => dirname(__FILE__) . '/test.key',
+    'audience'     => 'registry.docker.com',
+    'issuer'       => 'auth.docker.com',
 ));
 
 // listener for defined users
-$app->on($app::REGISTRY_REQUEST_EVENT, new \DockerToken\Listener\YamlAuthListener('users.example.yml'));
+// $app->on($app::REGISTRY_REQUEST_EVENT, new \DockerToken\Listener\YamlAuthListener('users.example.yml'));
 // custom listener with hardcoded user/password
 $app->on($app::REGISTRY_REQUEST_EVENT, function(DockerToken\Event\TokenRequestEventInterface $event){
     if ($event->isAccessGranted() || $event->isAccessDenied()) {
@@ -26,5 +26,5 @@ $app->on($app::REGISTRY_REQUEST_EVENT, function(DockerToken\Event\TokenRequestEv
     }
 });
 // listener for LDAP
-$app->on($app::REGISTRY_REQUEST_EVENT, new \DockerToken\Listener\LdapAuthListener('uid={username},dc=example,dc=com', '127.0.0.1'));
+// $app->on($app::REGISTRY_REQUEST_EVENT, new \DockerToken\Listener\LdapAuthListener('uid={username},dc=example,dc=com', '127.0.0.1'));
 $app->run();
