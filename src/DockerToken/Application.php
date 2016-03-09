@@ -5,7 +5,7 @@
  */
 namespace DockerToken;
 
-use JWT;
+use Firebase\JWT\JWT;
 use Base32\Base32;
 use DockerToken\Event\TokenRequestEvent;
 use DockerToken\Exception\InvalidAccessException;
@@ -16,6 +16,8 @@ use DockerToken\Request\ClaimSet;
 use Silex\Application as BaseApplication;
 use Symfony\Component\EventDispatcher\EventDispatcherInterface;
 use Symfony\Component\HttpFoundation\Response;
+use Symfony\Component\OptionsResolver\Options;
+use Symfony\Component\OptionsResolver\OptionsResolver;
 
 /**
  * Class Application
@@ -32,18 +34,70 @@ class Application extends BaseApplication
      */
     public function __construct(array $values = array())
     {
-        parent::__construct($values);
-        $this->initialize();
-    }
 
-    /**
-     * Setup application config and validate the config
-     */
-    protected function initialize()
-    {
-        $this->validateOptions();
+        $resolver = new OptionsResolver();
+        $this->configureOptions($resolver);
+
+        parent::__construct([
+            'options' => $resolver->resolve($values)
+        ]);
+
         $this->initializeLogger();
         $this->configureRoute();
+    }
+
+
+    /**
+     * @param OptionsResolver $resolver
+     */
+    protected function configureOptions(OptionsResolver $resolver)
+    {
+        $resolver
+            ->setRequired([
+                'public_key',
+                'private_key',
+                'audience',
+                'issuer',
+            ])
+            ->setDefaults([
+                'logger_level'      =>  null,
+                'logger_file'       =>  null,
+                'signing_algorithm' => 'RS256',
+                'route_end_point'   => '/v2/token/',
+
+            ])
+            ->setAllowedValues('public_key',  function($value){
+                return is_file($value) && preg_match(self::PEM_PREG, file_get_contents($value));
+            })
+            ->setAllowedValues('private_key', function($value){
+                return is_file($value) && preg_match(self::PEM_PREG, file_get_contents($value));
+            })
+            ->setAllowedValues('signing_algorithm', function($value){
+                return in_array($value, array_keys(JWT::$supported_algs));
+            })
+            ->setAllowedValues('logger_file',  function($value){
+                return @is_file($value) || @is_null($value) || @is_resource($value);
+            })
+            ->setAllowedTypes('audience', 'string')
+            ->setAllowedTypes('issuer',   'string')
+            ->setNormalizer('logger_level', function(Options $options, $value){
+                if (!empty($value) && !is_array($value)) {
+                    $value = (array) $value;
+                }
+                return $value;
+            })
+            ->setNormalizer('logger_file', function(Options $options, $value){
+                if (@is_resource($value)) {
+                    return $value;
+                }
+
+                if (@is_file($value)) {
+                    return fopen($value,  'a+');
+                }
+
+                return STDOUT;
+            })
+        ;
     }
 
     /**
@@ -52,15 +106,14 @@ class Application extends BaseApplication
     protected function configureRoute()
     {
 
-        $this->get('/v2/token/', function() {
+        $this->get($this['options']['route_end_point'], function() {
 
             try {
                 $parameters = new Parameters($this);
-
                 $token = new ClaimSet(
-                    $this['prop.audience'],
+                    $this['options']['audience'],
                     $parameters->getAccount(),
-                    $this['prop.issuer']
+                    $this['options']['issuer']
                 );
 
                 if (null !== ($scope = $parameters->getScope())) {
@@ -81,13 +134,14 @@ class Application extends BaseApplication
                         }
                     }
                 }
+
                 // as described on https://docs.docker.com/registry/spec/auth/token/
                 return $this->json(
                     [
                         'token' =>  JWT::encode(
                             $token->getArrayCopy(),
-                            $this['prop.private_key'],
-                            'RS256',
+                            $this->getSignKey(),
+                            $this['options']['signing_algorithm'],
                             $this->getKid()
                         ),
                         'expires_in' => $token->getExpiresTime(),
@@ -111,24 +165,13 @@ class Application extends BaseApplication
     }
 
     /**
-     * validate the given options
+     * get signing key, when using hashmac we need to decode key??
      *
-     * @throws ParameterException
+     * @return string
      */
-    protected function validateOptions()
+    protected function getSignKey()
     {
-        if (!isset($this['prop.public_key'])) {
-            throw new ParameterException('No public key defined');
-        }
-        if (!isset($this['prop.private_key'])) {
-            throw new ParameterException('No private key defined');
-        }
-        if (!isset($this['prop.audience'])) {
-            throw new ParameterException('No audience for claim defined');
-        }
-        if (!isset($this['prop.issuer'])) {
-            throw new ParameterException('No issuer for claim defined');
-        }
+        return $this->getPrivateKey(JWT::$supported_algs[$this['options']['signing_algorithm']][0] !== 'openssl');
     }
 
     /**
@@ -136,23 +179,8 @@ class Application extends BaseApplication
      */
     protected function initializeLogger()
     {
-        $levels = (isset($this['prop.log_level'])) ? (array) $this['prop.log_level'] : null;
-
-        if (isset($this['prop.log_file'])) {
-
-            if (@is_file($this['prop.log_file'])) {
-                $this['prop.log_file'] = fopen($this['prop.log_file'], 'a+');
-            }
-
-            if (!is_resource($this['prop.log_file'])) {
-                throw new ParameterException(sprintf('Logger file should be valid file or resource, given "%s"', gettype($this['prop.log_file'])));
-            }
-
-            $this['logger'] = new StreamLogger($this['prop.log_file'], $levels);
-        } else {
-            $this['logger'] = new StreamLogger(fopen('php://stdout', 'w'), $levels);
-        }
-     }
+        $this['logger'] = new StreamLogger($this['options']['logger_file'], $this['options']['logger_level']);
+    }
 
     /**
      * @return \Psr\Log\LoggerInterface
@@ -169,13 +197,24 @@ class Application extends BaseApplication
      */
     public function getKid()
     {
-        if (false == preg_match(self::PEM_PREG, $this['prop.public_key'], $m)) {
-            $this['logger']->error('Invalid PEM format encountered.');
-            throw new InvalidAccessException();
+        return implode(':', array_slice(str_split(rtrim(Base32::encode(hash('sha256', $this->getPrivateKey(true), true)), '='), 4), 0, 12));
+    }
+
+    /**
+     * open/decode the private key file
+     *
+     * @param   bool|false $decode
+     * @return  string
+     */
+    protected function getPrivateKey($decode = false)
+    {
+        $data = file_get_contents($this['options']['private_key']);
+        if ($decode) {
+            preg_match(self::PEM_PREG, $data, $m);
+            return base64_decode(preg_replace('/\n|\r/', '',  $m['DATA']));
+        }  else {
+            return $data;
         }
-        $key = preg_replace('/\n|\r/', '',  $m['DATA']);
-        $key = array_slice(str_split(rtrim(Base32::encode(hash('sha256', base64_decode($key), true)), '='), 4), 0, 12);
-        return implode(':', $key);
     }
 
 }

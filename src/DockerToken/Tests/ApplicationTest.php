@@ -18,11 +18,11 @@ class ApplicationTest extends  \PHPUnit_Framework_TestCase
 	protected function setUp()
 	{
 		$this->app = new Application([
-			'prop.public_key'   => file_get_contents(dirname(__FILE__) . '/Utils/test.pub'),
-			'prop.private_key'  => file_get_contents(dirname(__FILE__) . '/Utils/test.key'),
-			'prop.audience'     => 'registry.docker.com',
-			'prop.issuer'       => 'auth.docker.com',
-			'prop.log_file'     => fopen('/dev/null', 'w+')
+			'public_key'   => dirname(__FILE__) . '/Utils/test.pub',
+			'private_key'  => dirname(__FILE__) . '/Utils/test.key',
+			'audience'     => 'registry.docker.com',
+			'issuer'       => 'auth.docker.com',
+			'logger_file'  => fopen('/dev/null', 'w+')
 		]);
 
 	}
@@ -89,8 +89,8 @@ class ApplicationTest extends  \PHPUnit_Framework_TestCase
 		$this->assertEquals($data->issued_at,  (new \DateTime("@".$time, new \DateTimeZone("UTC")))->format('Y-m-d\TH:i:s\Z'));
 		// https://docs.docker.com/registry/spec/auth/jwt/
 		$token = [
-			'iss' => $this->app['prop.issuer'],
-            'aud' => $this->app['prop.audience'],
+			'iss' => $this->app['options']['issuer'],
+            'aud' => $this->app['options']['audience'],
 			'iat' => $time,
             'jti' => 1122334455667788,
             'access' => [

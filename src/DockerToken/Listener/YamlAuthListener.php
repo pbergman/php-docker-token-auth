@@ -17,6 +17,10 @@ class YamlAuthListener
 
     function __construct($file)
     {
+        if (!class_exists('Symfony\Component\Yaml\Yaml')) {
+            throw new \RuntimeException('Install symfony/yaml to use this listener');
+        }
+
         if (!is_file($file)) {
             throw new ListenerAccessException(sprintf('Could not find file: %s', $file));
         }
@@ -31,8 +35,6 @@ class YamlAuthListener
     {
 
         if (false === $event->isAccessGranted()) {
-
-
             /** @var Application $app */
             $app = $event->getApp();
             $parameters = $event->getParameters();

@@ -13,7 +13,7 @@
     <testsuites>
         <testsuite name="Docker registration auth test">
             <directory>src/*/Test</directory>
-            <!--<directory>./</directory>-->
+            <directory>./</directory>
         </testsuite>
     </testsuites>
 </phpunit>

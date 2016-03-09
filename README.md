@@ -9,24 +9,25 @@ It can be used to validate push/pull and registration us users for you private r
 ###Configuring
 
 
-property | type | description
----------|------|------
-prop.public_key   | string |  the private key, should be the content not file location
-prop.private_key  | string |  the public key, should be the content not file location
-prop.audience     | string |  audience that is registered in the registry (server name of registry)
-prop.issuer       | string |  issuer that is registered in the registry (server name of this server)
-prop.log_level    | string\|array |  log level[s] to display (example: ['error', 'info'])
-prop.log_file     |string |  log file or fd for logging , if non is given it will use stdout
-
+property |  required | type | description
+---------|-----------|------|------
+public_key   | yes |string |  the private key, should be the content not file location
+private_key  | yes |string |  the public key, should be the content not file location
+audience     | yes |string |  audience that is registered in the registry (server name of registry)
+issuer       | yes |string |  issuer that is registered in the registry (server name of this server)
+logger_level    | no | string\|array |  log level[s] to display (example: ['error', 'info'])
+logger_file     | no |string |  log file or fd for logging , if non is given it will use stdout
+route_end_point | no |string | The route endpoint to listen to, if non given it will default to /v2/token/
+signing_algorithm   | no |string| The algoritm used for signing the token, supported: HS256, HS512, HS384, RS256 (but only RS256 tested :D)
 
 the config should be given as argument with the constructor:
 
 ```
 $app = new DockerToken\Application([
-    'prop.public_key'   => file_get_contents(dirname(__FILE__) . '/public.key'),
-    'prop.private_key'  => file_get_contents(dirname(__FILE__) . '/private.key'),
-    'prop.audience'     => 'registry.docker.com',
-    'prop.issuer'       => 'auth.docker.com',
+    'public_key'   => dirname(__FILE__) . '/public.key',
+    'private_key'  => dirname(__FILE__) . '/private.key',
+    'audience'     => 'registry.docker.com',
+    'issuer'       => 'auth.docker.com',
 ])
 ```
 
@@ -34,11 +35,15 @@ $app = new DockerToken\Application([
 
 There are some listeners defined in src\DockerToken\Listener that can be used for validation (see) example.php or the tests.
 
-When using multiple handlers you can use the (is|set)Access(Granted|Denied) methods for controlling and comunicating the status.
+To communicate between handlers you can use the (is|set)Access(Granted|Denied) methods (see LdapAuthListener or YamlAuthListener).
 
-If you want to stop on success you use the stopPropagation method because the set methods won`t do that or on failure you can 
-just call  the InvalidAccessException that will resolve in a 401 status.
+By default the flag is set to abstain en when finished when the flag is not granted it will see it as the authentiaction is not 
+succesfull and throws a InvalidAccessException.
 
+If you want to stop on success you can use the stopPropagation method because from the event because the set methods won`t 
+do that. And on failure you can just call  the InvalidAccessException that will resolve in a 401 status.
+
+When using DockerToken\Listener\YamlAuthListener you also need symfony/yaml.
 
 ###Running
 
