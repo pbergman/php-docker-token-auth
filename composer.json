@@ -14,10 +14,10 @@
   },
   "require": {
     "php":                      ">=5.4.0",
-    "silex/silex":              "*@stable",
-    "firebase/php-jwt":         "*@stable",
-    "christian-riesen/base32":  "*@stable",
-    "symfony/options-resolver": "*@stable"
+    "silex/silex":              "1.*@stable",
+    "firebase/php-jwt":         "3.*@stable",
+    "christian-riesen/base32":  "1.*@stable",
+    "symfony/options-resolver": "2.*@stable"
   },
   "suggest": {
     "symfony/yaml": "Used for YamlAuthListener, where you can define users/rights in a yaml files"
