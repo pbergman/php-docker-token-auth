@@ -197,7 +197,31 @@ class Application extends BaseApplication
      */
     public function getKid()
     {
-        return implode(':', array_slice(str_split(rtrim(Base32::encode(hash('sha256', $this->getPrivateKey(true), true)), '='), 4), 0, 12));
+        return implode(':', array_slice(str_split(rtrim(Base32::encode(hash('sha256', $this->getPublicKey(true), true)), '='), 4), 0, 12));
+    }
+
+    /**
+     * open/decode the public key file
+     */
+    protected function getPublicKey($decode = false)
+    {
+        return $this->openKey($this['options']['public_key'], $decode);
+    }
+
+    /**
+     * @param   string        $key
+     * @param   bool|false    $decode
+     * @return  string
+     */
+    protected function openKey($key, $decode = false)
+    {
+        $data = file_get_contents($key);
+        if ($decode) {
+            preg_match(self::PEM_PREG, $data, $m);
+            return base64_decode(preg_replace('/\n|\r/', '',  $m['DATA']));
+        }  else {
+            return $data;
+        }
     }
 
     /**
@@ -208,13 +232,7 @@ class Application extends BaseApplication
      */
     protected function getPrivateKey($decode = false)
     {
-        $data = file_get_contents($this['options']['private_key']);
-        if ($decode) {
-            preg_match(self::PEM_PREG, $data, $m);
-            return base64_decode(preg_replace('/\n|\r/', '',  $m['DATA']));
-        }  else {
-            return $data;
-        }
+        return $this->openKey($this['options']['private_key'], $decode);
     }
 
 }
