@@ -28,7 +28,7 @@ class LdapAuthListener
      * @param string    $host       host to connect with
      * @param string    $filter     filter to search for
      */
-    function __construct($rdn, $host, $filter = '(uid="{username}")')
+    function __construct($rdn, $host, $filter = '(uid={username})')
     {
         $this->rdn = $rdn;
         $this->host = $host;

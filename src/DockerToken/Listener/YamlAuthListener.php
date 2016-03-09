@@ -17,7 +17,7 @@ class YamlAuthListener
 
     function __construct($file)
     {
-        if (!class_exists('Symfony\Component\Yaml\Yaml')) {
+        if (!class_exists('\Symfony\Component\Yaml\Yaml')) {
             throw new \RuntimeException('Install symfony/yaml to use this listener');
         }
 
@@ -25,7 +25,7 @@ class YamlAuthListener
             throw new ListenerAccessException(sprintf('Could not find file: %s', $file));
         }
 
-        $this->users = Yaml::parse($file);
+        $this->users = Yaml::parse(file_get_contents($file));
     }
 
     /**

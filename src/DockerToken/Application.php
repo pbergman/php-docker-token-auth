@@ -95,7 +95,7 @@ class Application extends BaseApplication
                     return fopen($value,  'a+');
                 }
 
-                return STDOUT;
+                return fopen('php://stdout',  'a+');
             })
         ;
     }
